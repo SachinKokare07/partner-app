@@ -36,8 +36,6 @@ export const AuthProvider = ({ children }) => {
   // 🔥 Firebase Auth State Listener
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
-      console.log('Auth state changed:', currentUser ? `User: ${currentUser.email}` : 'No user');
-      
       if (!currentUser) {
         // Don't clear state if user is in verification process
         if (!isVerifyingRef.current) {
@@ -53,7 +51,6 @@ export const AuthProvider = ({ children }) => {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const userData = { id: currentUser.uid, ...snap.data() };
-          console.log('User profile loaded from Firestore:', userData);
           
           // Check and update login streak
           await checkAndUpdateLoginStreak(currentUser.uid, userData);
@@ -77,21 +74,17 @@ export const AuthProvider = ({ children }) => {
         // If profile doesn't exist, check if we're in registration flow
         if (!isVerifyingRef.current) {
           // Not registering - this is an error, sign out
-          console.error('❌ User profile not found in Firestore. Signing out...');
+          console.error('User profile not found in Firestore. Signing out...');
           await signOut(auth);
           setUser(null);
-        } else {
-          // In registration flow - profile will be created soon, don't sign out yet
-          console.log('⏳ Profile not found but registration in progress, waiting...');
         }
         setLoading(false);
         return;
       } catch (err) {
         // Handle offline/cache scenario gracefully
-        console.warn('Firestore error, using fallback user data:', err);
         if (err?.code === 'unavailable' || /offline/i.test(err?.message || '')) {
           // Fallback: Try to get cached data, but if none exists, sign out
-          console.error('❌ Firestore offline and no cached profile. Signing out...');
+          console.error('Firestore offline and no cached profile. Signing out...');
           await signOut(auth);
           setUser(null);
         } else {
@@ -136,16 +129,13 @@ export const AuthProvider = ({ children }) => {
         if (lastLoginStr === yesterdayStr) {
           // Consecutive day - increment streak
           newStreak += 1;
-          console.log('Consecutive login! Streak:', newStreak);
         } else {
           // Streak broken - reset to 1
           newStreak = 1;
-          console.log('Streak broken. Starting new streak.');
         }
       } else {
         // First login ever
         newStreak = 1;
-        console.log('First login! Starting streak.');
       }
 
       // Update last login date and streak
@@ -174,7 +164,6 @@ export const AuthProvider = ({ children }) => {
       if (partnerSnap.exists()) {
         const partnerData = { id: partnerSnap.id, ...partnerSnap.data() };
         setPartner(partnerData);
-        console.log('Partner loaded:', partnerData);
       }
     } catch (err) {
       console.error('Error loading partner:', err);

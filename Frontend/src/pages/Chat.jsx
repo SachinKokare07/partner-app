@@ -101,8 +101,6 @@ const Chat = () => {
           const preferred = defaultPartner && partnersData.find(p => p.id === defaultPartner.id);
           setSelectedPartner(preferred || partnersData[0]);
         }
-        
-        console.log('✅ Loaded partners:', partnersData.length);
       } catch (error) {
         console.error('Error loading partners:', error);
       } finally {
@@ -112,14 +110,6 @@ const Chat = () => {
 
     fetchAllPartners();
   }, [user, defaultPartner]);
-
-  // Debug: Log user and partner info when component mounts or updates
-  useEffect(() => {
-    console.log('💡 Chat Component State:');
-    console.log('   User:', user ? `${user.id} (${user.name})` : 'NOT LOADED');
-    console.log('   Selected Partner:', selectedPartner ? `${selectedPartner.id} (${selectedPartner.name})` : 'NOT SELECTED');
-    console.log('   All Partners:', allPartners.length);
-  }, [user, selectedPartner, allPartners]);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -151,15 +141,11 @@ const Chat = () => {
 
     // Clean up previous listener if exists
     if (listenerRef.current) {
-      console.log('🧹 Cleaning up previous listener');
       listenerRef.current();
       listenerRef.current = null;
     }
 
     setLoading(true);
-    console.log('🔌 Setting up message listener');
-    console.log('👤 User:', user.id, user.name);
-    console.log('👥 Selected Partner:', selectedPartner.id, selectedPartner.name);
 
     const messagesRef = collection(db, 'messages');
     
@@ -171,11 +157,6 @@ const Chat = () => {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          console.log('🔥 All messages snapshot:', snapshot.docs.length, 'total docs');
-          console.log('🔍 Looking for messages between:');
-          console.log('   Current User ID:', user.id, '(' + user.name + ')');
-          console.log('   Selected Partner ID:', selectedPartner.id, '(' + selectedPartner.name + ')');
-          
           // Filter to only messages in this conversation
           const conversationMessages = [];
           
@@ -187,44 +168,30 @@ const Chat = () => {
               createdAt: data.createdAt?.toDate() || new Date()
             };
             
-            // Log every message for debugging
-            console.log(`  📧 Message ${doc.id}:`, {
-              from: msg.senderId + ' (' + msg.senderName + ')',
-              to: msg.receiverId + ' (' + msg.receiverName + ')',
-              text: msg.message?.substring(0, 30)
-            });
-            
             // Check if this message is part of the conversation
             const isSentByMe = msg.senderId === user.id && msg.receiverId === selectedPartner.id;
             const isReceivedFromPartner = msg.senderId === selectedPartner.id && msg.receiverId === user.id;
             
             if (isSentByMe || isReceivedFromPartner) {
               conversationMessages.push(msg);
-              console.log('    ✅ INCLUDED in conversation');
-            } else {
-              console.log('    ❌ EXCLUDED - not part of this conversation');
             }
           });
           
-          console.log(`  💬 Total messages in conversation: ${conversationMessages.length}`);
           setMessages(conversationMessages);
           setLoading(false);
           
           setTimeout(() => scrollToBottom(), 100);
         },
         (error) => {
-          console.error('❌ Message listener error:', error);
-          console.error('Error code:', error.code);
-          console.error('Error message:', error.message);
+          console.error('Message listener error:', error);
           setLoading(false);
         }
       );
 
       listenerRef.current = unsubscribe;
-      console.log('✅ Listener set up successfully');
       
     } catch (error) {
-      console.error('❌ Error setting up listener:', error);
+      console.error('Error setting up listener:', error);
       setLoading(false);
     }
 

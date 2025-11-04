@@ -21,19 +21,14 @@ function AppContent() {
 
   // Automatically switch to app view when user is logged in
   React.useEffect(() => {
-    console.log('Auth state check - User:', user ? user.email : 'null', 'View:', view, 'IsVerifying:', isVerifying);
-    
     // Don't auto-redirect if OTP verification is in progress
     if (isVerifying && view === 'signup') {
-      console.log('🔒 OTP verification in progress - staying on signup page');
       return; // Stay on signup page during OTP verification
     }
     
     if (user && (view === 'landing' || view === 'login')) {
-      console.log('User detected, switching to app view:', user);
       setView('app');
     } else if (!user && view === 'app') {
-      console.log('User logged out, returning to landing');
       setView('landing');
     }
   }, [user, view, isVerifying]);

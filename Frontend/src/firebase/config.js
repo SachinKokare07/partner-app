@@ -32,12 +32,9 @@ if (useEmulators) {
   try {
     connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
     connectFirestoreEmulator(db, '127.0.0.1', 8080);
-    console.info('Connected to Firebase emulators (Auth:9099, Firestore:8080)');
   } catch (e) {
-    console.warn('Failed to connect to Firebase emulators:', e);
+    console.error('Failed to connect to Firebase emulators:', e);
   }
 }
-
-console.log('✅ Firebase initialized successfully');
 
 export default app;
