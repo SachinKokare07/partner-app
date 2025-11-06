@@ -21,12 +21,28 @@ export const initializeFirebase = () => {
       return null;
     }
 
+    // Decode private key if it's Base64 encoded
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    
+    // Check if it's Base64 encoded (doesn't start with -----)
+    if (privateKey && !privateKey.startsWith('-----BEGIN')) {
+      try {
+        privateKey = Buffer.from(privateKey, 'base64').toString('utf-8');
+        console.log('✅ Decoded Base64 Firebase private key');
+      } catch (err) {
+        console.warn('⚠️  Failed to decode Base64 key, using as-is');
+      }
+    }
+    
+    // Replace escaped newlines with actual newlines
+    privateKey = privateKey?.replace(/\\n/g, '\n');
+    
     // Initialize with credentials from environment variables
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        privateKey: privateKey,
       }),
       databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`,
     });
