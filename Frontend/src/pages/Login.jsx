@@ -81,19 +81,10 @@ const handleSubmit = async (e) => {
         </form>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg text-sm text-center">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500 rounded-lg text-red-400 text-sm">
             {error}
           </div>
         )}
-
-        <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-          <p className="text-center text-gray-400 text-xs mb-2">Demo accounts (any password works):</p>
-          <ul className="text-xs text-gray-500 space-y-1">
-            <li>• you@example.com</li>
-            <li>• partner@example.com</li>
-            <li>• friend@example.com</li>
-          </ul>
-        </div>
 
         <div className="mt-4 text-center text-sm text-gray-400">
           Don&apos;t have an account?{' '}
