@@ -35,17 +35,10 @@ const createTransporter = () => {
 export const sendOTPEmail = async (email, otp, name = 'User') => {
   try {
     console.log('📧 Attempting to send OTP email...');
-    console.log('Email User:', process.env.EMAIL_USER ? 'Set' : 'NOT SET');
-    console.log('Email Pass:', process.env.EMAIL_PASS ? 'Set' : 'NOT SET');
+    console.log('Using:', USE_SENDGRID ? 'SendGrid' : 'Gmail SMTP');
     console.log('Recipient:', email);
     
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: `"Partner App" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: '🔐 Your OTP Code - Partner App',
-      html: `
+    const emailHtml = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -118,8 +111,9 @@ export const sendOTPEmail = async (email, otp, name = 'User') => {
           </div>
         </body>
         </html>
-      `,
-      text: `
+      `;
+
+    const emailText = `
 Hello ${name}!
 
 Thank you for registering with Partner App.
@@ -131,16 +125,36 @@ This OTP is valid for 10 minutes.
 If you didn't request this code, please ignore this email.
 
 © ${new Date().getFullYear()} Partner App. All rights reserved.
-      `,
-    };
+    `;
 
-    const info = await transporter.sendMail(mailOptions);
-    
-    console.log('✅ Email sent successfully:', info.messageId);
-    return {
-      success: true,
-      messageId: info.messageId,
-    };
+    // Use SendGrid in production, Gmail for local development
+    if (USE_SENDGRID) {
+      const msg = {
+        to: email,
+        from: process.env.EMAIL_USER || 'partnermyapp2025@gmail.com',
+        subject: '🔐 Your OTP Code - Partner App',
+        text: emailText,
+        html: emailHtml,
+      };
+
+      const response = await sgMail.send(msg);
+      console.log('✅ Email sent via SendGrid:', response[0].statusCode);
+      return {
+        success: true,
+        messageId: response[0].headers['x-message-id'],
+      };
+    } else {
+      // Gmail fallback for local development
+      const transporter = createTransporter();
+      const mailOptions = {
+        from: `"Partner App" <${process.env.EMAIL_USER}>`,
+        toemailHtml = info = await transporter.sendMail(mailOptions);
+      console.log('✅ Email sent via Gmail:', info.messageId);
+      return {
+        success: true,
+        messageId: info.messageId,
+      };
+    }
   } catch (error) {
     console.error('❌ Error sending email:', error);
     throw error;
@@ -208,12 +222,35 @@ export const sendWelcomeEmail = async (email, name) => {
     const info = await transporter.sendMail(mailOptions);
     
     console.log('✅ Welcome email sent successfully:', info.messageId);
-    return {
-      success: true,
-      messageId: info.messageId,
-    };
-  } catch (error) {
-    console.error('❌ Error sending welcome email:', error);
-    throw error;
-  }
-};
+    ret;
+
+    if (USE_SENDGRID) {
+      const msg = {
+        to: email,
+        from: process.env.EMAIL_USER || 'partnermyapp2025@gmail.com',
+        subject: '🎉 Welcome to Partner App!',
+        html: emailHtml,
+      };
+
+      const response = await sgMail.send(msg);
+      console.log('✅ Welcome email sent via SendGrid');
+      return {
+        success: true,
+        messageId: response[0].headers['x-message-id'],
+      };
+    } else {
+      const transporter = createTransporter();
+      const mailOptions = {
+        from: `"Partner App" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: '🎉 Welcome to Partner App!',
+        html: emailHtml,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Welcome email sent via Gmail');
+      return {
+        success: true,
+        messageId: info.messageId,
+      };
+    }
