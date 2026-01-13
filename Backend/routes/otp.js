@@ -1,4 +1,5 @@
 import express from 'express';
+import nodemailer from 'nodemailer';
 import { sendOTPEmail } from '../services/emailService.js';
 
 const router = express.Router();
@@ -17,8 +18,7 @@ router.get('/test', async (req, res) => {
     let smtpError = null;
     
     try {
-      const nodemailer = await import('nodemailer');
-      const testTransporter = nodemailer.default.createTransporter({
+      const testTransporter = nodemailer.createTransporter({
         service: 'gmail',
         host: 'smtp.gmail.com',
         port: 587,
