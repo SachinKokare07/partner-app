@@ -12,20 +12,51 @@ router.get('/test', async (req, res) => {
     const emailUser = process.env.EMAIL_USER;
     const emailPass = process.env.EMAIL_PASS;
     
+    // Test SMTP connection
+    let smtpStatus = 'Not tested';
+    let smtpError = null;
+    
+    try {
+      const nodemailer = await import('nodemailer');
+      const testTransporter = nodemailer.default.createTransporter({
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: emailUser,
+          pass: emailPass,
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+      
+      await testTransporter.verify();
+      smtpStatus = '✅ Connected';
+    } catch (err) {
+      smtpStatus = '❌ Failed';
+      smtpError = err.message;
+    }
+    
     res.json({
       success: true,
       configuration: {
         EMAIL_USER: emailUser ? '✅ Set' : '❌ Not Set',
         EMAIL_PASS: emailPass ? '✅ Set' : '❌ Not Set',
         emailUserValue: emailUser ? emailUser.substring(0, 3) + '***' : 'not set',
+        smtpConnection: smtpStatus,
+        smtpError: smtpError,
       },
-      message: 'Email configuration check complete'
+      message: 'Email configuration check complete',
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Failed to check configuration',
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 });
@@ -64,7 +95,9 @@ router.post('/send', async (req, res) => {
     }
 
     // Send OTP email
+    console.log(`📤 Sending OTP to ${email}...`);
     const result = await sendOTPEmail(email, otp, name);
+    console.log(`✅ OTP sent successfully! Message ID: ${result.messageId}`);
 
     res.json({
       success: true,
@@ -72,11 +105,21 @@ router.post('/send', async (req, res) => {
       messageId: result.messageId,
     });
   } catch (error) {
-    console.error('Error sending OTP:', error);
+    console.error('❌ Error sending OTP:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode
+    });
+    
     res.status(500).json({
       success: false,
       message: 'Failed to send OTP email. Please try again.',
       error: error.message,
+      errorCode: error.code,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
