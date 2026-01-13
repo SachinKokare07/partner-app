@@ -5,12 +5,23 @@ dotenv.config();
 
 // Create reusable transporter
 const createTransporter = () => {
+  // Validate environment variables
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('EMAIL_USER and EMAIL_PASS environment variables are required');
+  }
+
   return nodemailer.createTransport({
     service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // use TLS
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS, // Use App Password, not regular password
     },
+    tls: {
+      rejectUnauthorized: false // Allow self-signed certificates (for development)
+    }
   });
 };
 
@@ -23,6 +34,11 @@ const createTransporter = () => {
  */
 export const sendOTPEmail = async (email, otp, name = 'User') => {
   try {
+    console.log('📧 Attempting to send OTP email...');
+    console.log('Email User:', process.env.EMAIL_USER ? 'Set' : 'NOT SET');
+    console.log('Email Pass:', process.env.EMAIL_PASS ? 'Set' : 'NOT SET');
+    console.log('Recipient:', email);
+    
     const transporter = createTransporter();
 
     const mailOptions = {

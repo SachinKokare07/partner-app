@@ -313,12 +313,16 @@ export const AuthProvider = ({ children }) => {
           emailSent = true;
         } else {
           console.error('❌ Failed to send OTP email:', result.message);
+          console.error('📧 Full response:', JSON.stringify(result, null, 2));
           alert(`⚠️ Failed to send email: ${result.message}. Please check your email address or try again.`);
         }
       } catch (emailError) {
-        console.error('❌ Error sending OTP email:', emailError);
-        console.error('❌ Error details:', emailError.message, emailError.stack);
-        alert(`⚠️ Email service error: ${emailError.message}. Please make sure the backend server is running on port 5000.`);
+        console.error('❌ Error sending OTP email:');
+        console.error('Error message:', emailError.message || 'Unknown error');
+        console.error('Error name:', emailError.name || 'Unknown');
+        if (emailError.stack) console.error('Stack trace:', emailError.stack);
+        console.error('Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
+        alert(`⚠️ Email service error: ${emailError.message || 'Unable to connect to backend'}. Please check your internet connection or contact support.`);
       }
       
       if (!emailSent) {
@@ -559,9 +563,14 @@ export const AuthProvider = ({ children }) => {
           console.log('✅ OTP email resent successfully to:', email);
         } else {
           console.error('❌ Failed to resend OTP email:', result.message);
+          console.error('📧 Full response:', JSON.stringify(result, null, 2));
         }
       } catch (emailError) {
-        console.error('❌ Error resending OTP email:', emailError);
+        console.error('❌ Error resending OTP email:');
+        console.error('Error message:', emailError.message || 'Unknown error');
+        console.error('Error name:', emailError.name || 'Unknown');
+        if (emailError.stack) console.error('Stack trace:', emailError.stack);
+        console.error('Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
       }
 
       console.log('📧 New OTP Code:', otp);

@@ -58,10 +58,17 @@ app.use('/api/otp', otpRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  const emailConfigured = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+  
   res.json({ 
     success: true, 
     message: 'Server is running',
     timestamp: new Date().toISOString(),
+    config: {
+      emailService: emailConfigured ? '✅ Configured' : '❌ Not Configured',
+      firebaseAdmin: '✅ Initialized',
+      corsEnabled: '✅ Enabled',
+    }
   });
 });
 

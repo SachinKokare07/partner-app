@@ -4,6 +4,33 @@ import { sendOTPEmail } from '../services/emailService.js';
 const router = express.Router();
 
 /**
+ * GET /api/otp/test
+ * Test email configuration (for debugging)
+ */
+router.get('/test', async (req, res) => {
+  try {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS;
+    
+    res.json({
+      success: true,
+      configuration: {
+        EMAIL_USER: emailUser ? '✅ Set' : '❌ Not Set',
+        EMAIL_PASS: emailPass ? '✅ Set' : '❌ Not Set',
+        emailUserValue: emailUser ? emailUser.substring(0, 3) + '***' : 'not set',
+      },
+      message: 'Email configuration check complete'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check configuration',
+      error: error.message
+    });
+  }
+});
+
+/**
  * POST /api/otp/send
  * Send OTP to user's email
  */
