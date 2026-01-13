@@ -1,6 +1,6 @@
 {
   "name": "partner-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend API for Partner Progress Tracking App with Firebase",
   "main": "server.js",
   "type": "module",
