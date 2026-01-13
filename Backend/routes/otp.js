@@ -38,6 +38,37 @@ router.get('/test', async (req, res) => {
 });
 
 /**
+ * GET /api/otp/test-send
+ * Actually test sending an email
+ */
+router.get('/test-send', async (req, res) => {
+  try {
+    const testEmail = process.env.EMAIL_USER; // Send to self
+    const testOTP = '123456';
+    
+    console.log('🧪 Testing email send to:', testEmail);
+    
+    const result = await sendOTPEmail(testEmail, testOTP, 'Test User');
+    
+    res.json({
+      success: true,
+      message: 'Test email sent successfully!',
+      messageId: result.messageId,
+      sentTo: testEmail
+    });
+  } catch (error) {
+    console.error('❌ Test email failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send test email',
+      error: error.message,
+      errorCode: error.code,
+      errorResponse: error.response
+    });
+  }
+});
+
+/**
  * POST /api/otp/send
  * Send OTP to user's email
  */
