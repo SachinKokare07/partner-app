@@ -497,7 +497,11 @@ export const AuthProvider = ({ children }) => {
         
         if (result.success) {
           // Email sent successfully
-        } else {
+        }
+      } catch (emailErr) {
+        console.error('Failed to send email:', emailErr);
+      }
+      
       return { 
         success: true, 
         message: 'New OTP sent!',

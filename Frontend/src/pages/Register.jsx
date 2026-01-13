@@ -256,7 +256,6 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
   }
 
   // Registration form UI (step 1)
-  console.log('📝 Rendering registration form (step 1)');
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
       <div className="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-2xl p-6">
