@@ -92,7 +92,7 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
         document.getElementById('otp-0')?.focus();
       }
     } catch (err) {
-      console.error('Verification check error:', err);
+
       setLoading(false);
       setError('Failed to verify OTP');
       setTimeout(() => setError(''), 4000);
@@ -120,7 +120,6 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
         setTimeout(() => setError(''), 4000);
       }
     } catch (err) {
-      console.error('Resend verification error:', err);
       setLoading(false);
       setError('Failed to resend OTP');
       setTimeout(() => setError(''), 4000);
@@ -132,57 +131,40 @@ const Register = ({ onRegisterSuccess, onSwitchToLogin }) => {
     setError('');
     setSuccess('');
     
-    console.log('🔵 STEP 1: Form submitted!');
-    console.log('Form data:', form);
-    
     if (form.password !== form.confirm) {
       setError('Passwords do not match');
-      console.log('❌ Passwords do not match');
       return;
     }
     
     if (form.password.length < 6) {
       setError('Password must be at least 6 characters');
-      console.log('❌ Password too short');
       return;
     }
     
     setLoading(true);
-    console.log('🔵 STEP 2: Calling register function...');
     
     try {
       const result = await register(form);
-      console.log('🔵 STEP 3: Register result:', result);
       setLoading(false);
       
       if (result?.success) {
-        console.log('✅ SUCCESS! Registration complete, OTP sent');
-        console.log('🔵 STEP 4: Switching to OTP screen...');
-        
         // Show success message - user gets OTP via email
         setSuccess(`Account created! OTP sent to ${form.email}. Check your inbox and spam folder.`);
         setVerificationSent(true);
         setStep(2); // Move to OTP verification step
-        console.log('🟢 STEP 5: Step is now 2 - OTP screen should show!');
       } else {
-        console.log('❌ FAILED! Registration failed:', result?.message);
         setError(result?.message || 'Registration failed. Try again.');
         setTimeout(() => setError(''), 4000);
       }
     } catch (err) {
-      console.error('❌ EXCEPTION! Registration error:', err);
       setLoading(false);
       setError('An unexpected error occurred. Please try again.');
       setTimeout(() => setError(''), 4000);
     }
   };
 
-  // Debug: Log current step
-  console.log('🎯 Current step:', step);
-
   // Verification step UI
   if (step === 2) {
-    console.log('✅ Rendering OTP screen (step 2)');
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
         <div className="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-2xl p-8">

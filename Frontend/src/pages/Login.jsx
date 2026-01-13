@@ -21,7 +21,6 @@ const handleSubmit = async (e) => {
   setLoading(false);
 
   if (result?.success) {
-    console.log('Login successful, redirecting to dashboard...');
     // Small delay to ensure auth state is updated
     setTimeout(() => {
       onLoginSuccess?.();

@@ -74,7 +74,6 @@ export const AuthProvider = ({ children }) => {
         // If profile doesn't exist, check if we're in registration flow
         if (!isVerifyingRef.current) {
           // Not registering - this is an error, sign out
-          console.error('User profile not found in Firestore. Signing out...');
           await signOut(auth);
           setUser(null);
         }
@@ -84,11 +83,9 @@ export const AuthProvider = ({ children }) => {
         // Handle offline/cache scenario gracefully
         if (err?.code === 'unavailable' || /offline/i.test(err?.message || '')) {
           // Fallback: Try to get cached data, but if none exists, sign out
-          console.error('Firestore offline and no cached profile. Signing out...');
           await signOut(auth);
           setUser(null);
         } else {
-          console.error('Failed to fetch user profile:', err);
           // Sign out on any other error to prevent "Anonymous" state
           await signOut(auth);
           setUser(null);
@@ -111,7 +108,6 @@ export const AuthProvider = ({ children }) => {
 
       // If already logged in today, do nothing
       if (lastLoginStr === todayStr) {
-        console.log('Already logged in today');
         return;
       }
 
@@ -152,7 +148,7 @@ export const AuthProvider = ({ children }) => {
       }));
 
     } catch (err) {
-      console.error('Error updating login streak:', err);
+      // Error updating login streak
     }
   };
 
@@ -166,7 +162,7 @@ export const AuthProvider = ({ children }) => {
         setPartner(partnerData);
       }
     } catch (err) {
-      console.error('Error loading partner:', err);
+      // Error loading partner
     }
   };
 
@@ -190,22 +186,19 @@ export const AuthProvider = ({ children }) => {
       );
       setRequests(requestsData.filter(req => req !== null));
     } catch (err) {
-      console.error('Error loading requests:', err);
+      // Error loading requests
     }
   };
 
   const login = async (email, password) => {
     try {
-      console.log('🔐 Attempting login for:', email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ Firebase Auth successful');
       
       // Check if email is verified in Firestore
       const userRef = doc(db, 'users', userCredential.user.uid);
       const userSnap = await getDoc(userRef);
       
       if (!userSnap.exists()) {
-        console.error('❌ User profile not found in Firestore');
         await signOut(auth);
         return { 
           success: false, 
@@ -214,10 +207,8 @@ export const AuthProvider = ({ children }) => {
       }
       
       const userData = userSnap.data();
-      console.log('📄 User profile loaded:', userData);
       
       if (!userData.emailVerified) {
-        console.error('❌ Email not verified');
         // Sign out the user and show error
         await signOut(auth);
         return { 
@@ -227,10 +218,8 @@ export const AuthProvider = ({ children }) => {
         };
       }
       
-      console.log('✅ Login successful!');
       return { success: true };
     } catch (err) {
-      console.error("Login error:", err);
       // Map common Firebase auth errors
       let message = 'Login failed';
       if (err?.code === 'auth/user-not-found') {
@@ -265,7 +254,6 @@ export const AuthProvider = ({ children }) => {
       // Set verification flag FIRST to prevent auth listener from interfering
       setIsVerifying(true);
       isVerifyingRef.current = true;
-      console.log('🚩 Verification flag set to TRUE');
       
       // Create user in Firebase Auth first
       const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -273,7 +261,6 @@ export const AuthProvider = ({ children }) => {
       
       // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      console.log('Generated OTP:', otp); // For testing - remove in production
       
       // Store OTP in Firestore with expiry (10 minutes)
       const otpRef = doc(db, 'otpCodes', uid);
@@ -289,8 +276,6 @@ export const AuthProvider = ({ children }) => {
       let emailSent = false;
       try {
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-        console.log('📧 Sending OTP to backend:', backendUrl);
-        console.log('📧 Request payload:', { email, otp, name });
         
         const response = await fetch(`${backendUrl}/api/otp/send`, {
           method: 'POST',
@@ -304,32 +289,16 @@ export const AuthProvider = ({ children }) => {
           }),
         });
 
-        console.log('📧 Response status:', response.status, response.statusText);
         const result = await response.json();
-        console.log('📧 Response body:', result);
         
         if (result.success) {
-          console.log('✅ OTP email sent successfully to:', email);
           emailSent = true;
         } else {
-          console.error('❌ Failed to send OTP email:', result.message);
-          console.error('📧 Full response:', JSON.stringify(result, null, 2));
           alert(`⚠️ Failed to send email: ${result.message}. Please check your email address or try again.`);
         }
       } catch (emailError) {
-        console.error('❌ Error sending OTP email:');
-        console.error('Error message:', emailError.message || 'Unknown error');
-        console.error('Error name:', emailError.name || 'Unknown');
-        if (emailError.stack) console.error('Stack trace:', emailError.stack);
-        console.error('Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
         alert(`⚠️ Email service error: ${emailError.message || 'Unable to connect to backend'}. Please check your internet connection or contact support.`);
       }
-      
-      if (!emailSent) {
-        console.log('⚠️ Email not sent - OTP stored in Firestore for manual verification');
-      }
-      
-      console.log('✅ OTP sent to:', email, '| Code:', otp);
       
       // Create user profile in Firestore (but mark as unverified)
       const ref = doc(db, 'users', uid);
@@ -356,23 +325,18 @@ export const AuthProvider = ({ children }) => {
       // Store UID in sessionStorage for OTP verification (avoids query)
       if (typeof window !== 'undefined') {
         window.sessionStorage.setItem(`pending_verification_uid_${email}`, uid);
-        console.log('💾 Stored UID for verification:', uid);
       }
       
       // IMPORTANT: Sign out immediately after registration
       // This prevents auto-login and keeps user on OTP verification screen
       await signOut(auth);
-      console.log('🚪 User signed out - waiting for OTP verification');
       
-      console.log('📧 OTP sent to email:', email);
-      console.log('Registration successful, awaiting OTP verification');
       return { 
         success: true, 
         message: `OTP sent to ${email}! Check your email.`,
         userId: uid
       };
     } catch (err) {
-      console.error('Register error:', err);
       // Clear verification flag on error
       setIsVerifying(false);
       isVerifyingRef.current = false;
@@ -389,10 +353,6 @@ export const AuthProvider = ({ children }) => {
   // Check if email is verified (now checks OTP)
   const checkEmailVerification = async (otpCode, email, password) => {
     try {
-      console.log('🔍 Starting OTP verification...');
-      console.log('Email:', email);
-      console.log('OTP entered:', otpCode);
-      console.log('OTP type:', typeof otpCode);
       
       if (!otpCode || otpCode.length !== 6) {
         return { success: false, message: 'Please enter a valid 6-digit OTP' };
@@ -402,65 +362,45 @@ export const AuthProvider = ({ children }) => {
       const uid = window.sessionStorage.getItem(`pending_verification_uid_${email}`);
       
       if (!uid) {
-        console.error('❌ UID not found in sessionStorage');
         return { success: false, message: 'Session expired. Please register again.' };
       }
       
-      console.log('✅ Retrieved UID from sessionStorage:', uid);
-
       // Get OTP data directly by UID (no query needed!)
       const otpRef = doc(db, 'otpCodes', uid);
       const otpSnap = await getDoc(otpRef);
 
       if (!otpSnap.exists()) {
-        console.error('❌ OTP document not found in Firestore');
         return { success: false, message: 'OTP not found. Please request a new one.' };
       }
 
       const otpData = otpSnap.data();
-      console.log('✅ OTP data from Firestore:', otpData);
-      console.log('Stored OTP:', otpData.code, '(type:', typeof otpData.code, ')');
-      console.log('Entered OTP:', otpCode, '(type:', typeof otpCode, ')');
-      console.log('Match?', otpData.code === otpCode);
 
       // Check if OTP is expired
       const expiresAt = new Date(otpData.expiresAt);
       const now = new Date();
-      console.log('Expiry check - Now:', now, 'Expires:', expiresAt);
       
       if (now > expiresAt) {
-        console.error('❌ OTP expired');
         return { success: false, message: 'OTP expired. Please request a new one.' };
       }
-      console.log('✅ OTP not expired');
 
       // Verify OTP matches (convert both to strings and trim)
       const storedOTP = String(otpData.code).trim();
       const enteredOTP = String(otpCode).trim();
       
-      console.log('Comparing - Stored:', storedOTP, 'vs Entered:', enteredOTP);
-      
       if (storedOTP !== enteredOTP) {
-        console.error('❌ OTP mismatch!');
         return { success: false, message: 'Invalid OTP. Please check and try again.' };
       }
-      console.log('✅ OTP matches!');
 
       // Check if already verified
       if (otpData.verified) {
-        console.error('❌ OTP already used');
         return { success: false, message: 'OTP already used. Please request a new one.' };
       }
-      console.log('✅ OTP not yet used');
 
       // Mark OTP as verified
-      console.log('📝 Marking OTP as verified...');
       await updateDoc(otpRef, { verified: true });
 
       // Sign in the user with email and password
-      console.log('🔐 Signing in user...');
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ User signed in successfully');
 
       // Update user profile to mark email as verified
       const userRef = doc(db, 'users', uid);
@@ -471,17 +411,14 @@ export const AuthProvider = ({ children }) => {
         window.sessionStorage.removeItem(`pending_verification_uid_${email}`);
         window.sessionStorage.removeItem(`otp_${uid}`);
         window.sessionStorage.removeItem(`otp_email_${email}`);
-        console.log('🧹 Cleaned up sessionStorage');
       }
 
       // Clear verification flag
       setIsVerifying(false);
       isVerifyingRef.current = false;
 
-      console.log('✅ Email verified successfully! User is now logged in.');
       return { success: true, message: 'Email verified!' };
     } catch (err) {
-      console.error('Check verification error:', err);
       setIsVerifying(false);
       isVerifyingRef.current = false;
       
@@ -524,7 +461,6 @@ export const AuthProvider = ({ children }) => {
 
       // Generate new OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      console.log('Generated new OTP:', otp);
 
       // Update OTP in Firestore
       const otpRef = doc(db, 'otpCodes', userId);
@@ -560,28 +496,14 @@ export const AuthProvider = ({ children }) => {
         const result = await response.json();
         
         if (result.success) {
-          console.log('✅ OTP email resent successfully to:', email);
+          // Email sent successfully
         } else {
-          console.error('❌ Failed to resend OTP email:', result.message);
-          console.error('📧 Full response:', JSON.stringify(result, null, 2));
-        }
-      } catch (emailError) {
-        console.error('❌ Error resending OTP email:');
-        console.error('Error message:', emailError.message || 'Unknown error');
-        console.error('Error name:', emailError.name || 'Unknown');
-        if (emailError.stack) console.error('Stack trace:', emailError.stack);
-        console.error('Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
-      }
-
-      console.log('📧 New OTP Code:', otp);
-      console.log('OTP resent to:', email);
       return { 
         success: true, 
         message: 'New OTP sent!',
         otpForTesting: otp // Remove in production!
       };
     } catch (err) {
-      console.error('Resend verification error:', err);
       
       let message = 'Failed to send OTP';
       if (err?.code === 'auth/too-many-requests') {
@@ -612,7 +534,6 @@ export const AuthProvider = ({ children }) => {
       setRecaptchaVerifier(verifier);
       return verifier;
     } catch (err) {
-      console.error('RecaptchaVerifier setup error:', err);
       return null;
     }
   };
@@ -631,7 +552,6 @@ export const AuthProvider = ({ children }) => {
       const confirmation = await signInWithPhoneNumber(auth, mobile, window.recaptchaVerifier);
       return { success: true, confirmation };
     } catch (err) {
-      console.error('Send OTP error:', err);
       let message = 'Failed to send OTP: ' + (err?.message || 'Unknown error');
       if (err?.code === 'auth/invalid-phone-number') message = 'Invalid mobile number format';
       if (err?.code === 'auth/too-many-requests') message = 'Too many requests. Try again later.';
@@ -662,7 +582,6 @@ export const AuthProvider = ({ children }) => {
       setUser({ id: uid, ...userProfile });
       return { success: true };
     } catch (err) {
-      console.error('Verify OTP error:', err);
       let message = 'Invalid OTP';
       if (err?.code === 'auth/invalid-verification-code') message = 'Invalid OTP code';
       if (err?.code === 'auth/code-expired') message = 'OTP expired. Please try again.';
@@ -673,53 +592,37 @@ export const AuthProvider = ({ children }) => {
   // Firestore partner request
   const sendPartnerRequest = async (email) => {
     if (!user) {
-      console.error('Send request failed: Not logged in');
       return { success: false, message: "Not logged in" };
     }
 
     try {
-      console.log('Sending partner request to:', email);
-      console.log('Current user:', user.id, user.email);
-      
       const q = query(collection(db, "users"), where("email", "==", email));
       const snap = await getDocs(q);
 
-      console.log('Query results:', snap.size, 'users found');
-
       if (snap.empty) {
-        console.error('No user found with email:', email);
         return { success: false, message: "User not found" };
       }
 
       const targetDoc = snap.docs[0];
       const targetData = targetDoc.data();
       
-      console.log('Target user found:', targetDoc.id, targetData.email);
-
       // Prevent sending request to self
       if (targetDoc.id === user.id) {
-        console.error('Cannot send request to self');
         return { success: false, message: "Cannot send request to yourself" };
       }
 
       // Check if request already sent
       if (targetData.pendingRequests?.includes(user.id)) {
-        console.error('Request already sent');
         return { success: false, message: "Request already sent" };
       }
 
-      console.log('Updating target user with pending request...');
       // Use setDoc with merge and arrayUnion
       await setDoc(doc(db, 'users', targetDoc.id), { 
         pendingRequests: arrayUnion(user.id) 
       }, { merge: true });
       
-      console.log('Request sent successfully!');
       return { success: true, message: "Request sent!" };
     } catch (err) {
-      console.error('Send request error:', err);
-      console.error('Error code:', err.code);
-      console.error('Error message:', err.message);
       return { success: false, message: `Failed to send request: ${err.message}` };
     }
   };
@@ -752,7 +655,6 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, message: "Partner connected!" };
     } catch (err) {
-      console.error('Accept request error:', err);
       return { success: false, message: "Failed to accept request" };
     }
   };
@@ -775,7 +677,6 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, message: "Request declined" };
     } catch (err) {
-      console.error('Reject request error:', err);
       return { success: false, message: "Failed to reject request" };
     }
   };
@@ -798,7 +699,6 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, message: "Partner removed" };
     } catch (err) {
-      console.error('Remove partner error:', err);
       return { success: false, message: "Failed to remove partner" };
     }
   };
