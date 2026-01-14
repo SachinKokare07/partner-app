@@ -65,6 +65,8 @@ export const AuthProvider = ({ children }) => {
           // Load pending requests
           if (userData.pendingRequests && userData.pendingRequests.length > 0) {
             await loadPendingRequests(userData.pendingRequests);
+          } else {
+            setRequests([]);
           }
           
           setLoading(false);
@@ -615,18 +617,30 @@ export const AuthProvider = ({ children }) => {
         return { success: false, message: "Cannot send request to yourself" };
       }
 
+      // Check if target already has a partner
+      if (targetData.partner) {
+        return { success: false, message: "User already has a partner" };
+      }
+
+      // Check if you already have a partner
+      if (user.partner) {
+        return { success: false, message: "You already have a partner" };
+      }
+
       // Check if request already sent
       if (targetData.pendingRequests?.includes(user.id)) {
         return { success: false, message: "Request already sent" };
       }
 
-      // Use setDoc with merge and arrayUnion
-      await setDoc(doc(db, 'users', targetDoc.id), { 
+      // Use updateDoc with arrayUnion - more reliable than setDoc merge
+      const targetUserRef = doc(db, 'users', targetDoc.id);
+      await updateDoc(targetUserRef, { 
         pendingRequests: arrayUnion(user.id) 
-      }, { merge: true });
+      });
       
       return { success: true, message: "Request sent!" };
     } catch (err) {
+      console.error('Partner request error:', err);
       return { success: false, message: `Failed to send request: ${err.message}` };
     }
   };
@@ -639,15 +653,15 @@ export const AuthProvider = ({ children }) => {
       const userRef = doc(db, "users", user.id);
       const fromUserRef = doc(db, "users", fromUserId);
 
-      // Update both users to be partners (use setDoc with merge)
-      await setDoc(userRef, {
+      // Update both users to be partners (use updateDoc)
+      await updateDoc(userRef, {
         partner: fromUserId,
         pendingRequests: user.pendingRequests?.filter(id => id !== fromUserId) || []
-      }, { merge: true });
+      });
 
-      await setDoc(fromUserRef, {
+      await updateDoc(fromUserRef, {
         partner: user.id
-      }, { merge: true });
+      });
 
       // Update local state
       const fromUserSnap = await getDoc(fromUserRef);
@@ -670,10 +684,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const userRef = doc(db, "users", user.id);
 
-      // Remove from pending requests (use setDoc with merge)
-      await setDoc(userRef, {
+      // Remove from pending requests (use updateDoc)
+      await updateDoc(userRef, {
         pendingRequests: user.pendingRequests?.filter(id => id !== fromUserId) || []
-      }, { merge: true });
+      });
 
       // Update local state
       setUser({ ...user, pendingRequests: user.pendingRequests?.filter(id => id !== fromUserId) || [] });
@@ -681,6 +695,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, message: "Request declined" };
     } catch (err) {
+      console.error('Reject request error:', err);
       return { success: false, message: "Failed to reject request" };
     }
   };
@@ -693,9 +708,9 @@ export const AuthProvider = ({ children }) => {
       const userRef = doc(db, "users", user.id);
       const partnerRef = doc(db, "users", user.partner);
 
-      // Update both users (use setDoc with merge to handle missing docs)
-      await setDoc(userRef, { partner: null }, { merge: true });
-      await setDoc(partnerRef, { partner: null }, { merge: true });
+      // Update both users (use updateDoc)
+      await updateDoc(userRef, { partner: null });
+      await updateDoc(partnerRef, { partner: null });
 
       // Update local state
       setUser({ ...user, partner: null });
@@ -703,6 +718,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, message: "Partner removed" };
     } catch (err) {
+      console.error('Remove partner error:', err);
       return { success: false, message: "Failed to remove partner" };
     }
   };

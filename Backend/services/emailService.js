@@ -19,7 +19,8 @@ const createTransporter = () => {
     throw new Error('EMAIL_USER and EMAIL_PASS environment variables are required');
   }
 
-  return nodemailer.createTransporter({
+  // Use the correct method name - createTransport (not createTransporter)
+  return nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
     port: 587,
